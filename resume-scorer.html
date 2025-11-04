@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS Resume Match Scorer</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for textareas */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+
+    <div class="container mx-auto p-4 sm:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-blue-800">ATS Resume Match Scorer</h1>
+            <p class="mt-2 text-xl text-gray-600">See how well your resume matches the job description.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Input Column -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- Job Description Input -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <label for="jobDescription" class="block text-lg font-semibold text-gray-700 mb-2">1. Paste Job Description</label>
+                    <textarea id="jobDescription" rows="12" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 resize-none" placeholder="Paste the full job description here..."></textarea>
+                </div>
+
+                <!-- Resume Text Input -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <label for="resumeText" class="block text-lg font-semibold text-gray-700 mb-2">2. Paste Your Resume Text</label>
+                    <textarea id="resumeText" rows="12" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 resize-none" placeholder="Paste the plain text of your resume here..."></textarea>
+                </div>
+
+                <!-- Action Button -->
+                <button id="scoreButton" onclick="scoreResume()" class="w-full py-4 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xl rounded-xl shadow-lg transition duration-150 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-blue-500/50 disabled:bg-blue-400">
+                    <span id="buttonText">Score My Resume</span>
+                    <div id="spinner" class="hidden animate-spin h-6 w-6 border-4 border-white border-t-transparent rounded-full mx-auto"></div>
+                </button>
+
+                <!-- API Key Input (Optional but recommended for testing) -->
+                <div class="text-sm text-center text-gray-500 p-4">
+                    <p>
+                        The application will attempt to use a default API key if one is available.
+                        For dedicated use, you can set your **Gemini API Key** in the JavaScript function.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Results Column -->
+            <div class="lg:col-span-1">
+                <div id="resultsCard" class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 min-h-full">
+                    <h2 class="text-2xl font-bold text-blue-800 border-b pb-3 mb-4">ATS Analysis Results</h2>
+                    
+                    <!-- Match Score Section -->
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-700 flex items-center mb-2">
+                            <svg class="w-6 h-6 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v14M9 19c-4.418 0-8-3.582-8-8s3.582-8 8-8m0 16c4.418 0 8-3.582 8-8s-3.582-8-8-8"></path></svg>
+                            Match Score
+                        </h3>
+                        <p id="matchScoreDisplay" class="text-5xl font-extrabold text-gray-400">--</p>
+                        <p class="text-sm text-gray-500 mt-1">/ 100 points</p>
+                    </div>
+
+                    <!-- Matched Keywords Section -->
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-700 flex items-center mb-2">
+                            <svg class="w-6 h-6 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                            Key Matched Keywords
+                        </h3>
+                        <div id="matchedKeywordsDisplay" class="flex flex-wrap gap-2 text-sm">
+                            <span class="text-gray-500 italic">Enter text and click 'Score' to see keywords.</span>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Summary -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-700 flex items-center mb-2">
+                            <svg class="w-6 h-6 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Summary Analysis
+                        </h3>
+                        <p id="analysisDisplay" class="text-gray-600 leading-relaxed text-base italic">The analysis will appear here. It will suggest areas for improvement.</p>
+                    </div>
+
+                    <!-- Error/Message Box -->
+                    <div id="messageBox" class="mt-6 hidden p-4 text-sm rounded-lg bg-red-100 text-red-700 border border-red-300"></div>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
+        const MAX_RETRIES = 3;
+        const INITIAL_BACKOFF_MS = 1000;
+
+        // --- UI Element References ---
+        const jobDescriptionEl = document.getElementById('jobDescription');
+        const resumeTextEl = document.getElementById('resumeText');
+        const scoreButton = document.getElementById('scoreButton');
+        const buttonTextEl = document.getElementById('buttonText');
+        const spinnerEl = document.getElementById('spinner');
+        const matchScoreDisplay = document.getElementById('matchScoreDisplay');
+        const matchedKeywordsDisplay = document.getElementById('matchedKeywordsDisplay');
+        const analysisDisplay = document.getElementById('analysisDisplay');
+        const messageBox = document.getElementById('messageBox');
+
+        // --- API Configuration ---
+
+        // IMPORTANT: Leave apiKey as an empty string. The Canvas environment provides the key at runtime.
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+
+        // LLM structured output schema
+        const responseSchema = {
+            type: "OBJECT",
+            properties: {
+                "matchScore": {
+                    "type": "INTEGER",
+                    "description": "The percentage match score between 0 and 100. Be honest and critical."
+                },
+                "matchedKeywords": {
+                    "type": "ARRAY",
+                    "description": "A list of 5 to 10 key technical skills, tools, and responsibilities that appear in both the job description and the resume.",
+                    "items": { "type": "STRING" }
+                },
+                "analysis": {
+                    "type": "STRING",
+                    "description": "A concise, single-paragraph summary (3-5 sentences) of the strengths and weaknesses of the resume match and areas for improvement."
+                }
+            },
+            propertyOrdering: ["matchScore", "matchedKeywords", "analysis"]
+        };
+
+        // LLM system instruction
+        const systemPrompt = "You are an expert Applicant Tracking System (ATS) analyst. Your task is to compare the provided Resume Text against the Job Description (JD). Your analysis must focus purely on keyword and experience matching between the two documents. Provide a strict JSON object response.";
+
+        // --- Utility Functions ---
+
+        /**
+         * Shows a message in the designated box.
+         * @param {string} message The message to display.
+         * @param {string} type 'error' (red) or 'success' (green)
+         */
+        function showMessage(message, type = 'error') {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'border-red-300', 'bg-green-100', 'text-green-700', 'border-green-300');
+            messageBox.classList.add(
+                type === 'error' ? 'bg-red-100' : 'bg-green-100',
+                type === 'error' ? 'text-red-700' : 'text-green-700',
+                type === 'error' ? 'border-red-300' : 'border-green-300'
+            );
+            messageBox.classList.remove('hidden');
+        }
+
+        /**
+         * Clears the message box.
+         */
+        function clearMessage() {
+            messageBox.classList.add('hidden');
+            messageBox.textContent = '';
+        }
+
+        /**
+         * Sets the loading state of the UI.
+         * @param {boolean} isLoading 
+         */
+        function setLoading(isLoading) {
+            scoreButton.disabled = isLoading;
+            if (isLoading) {
+                buttonTextEl.classList.add('hidden');
+                spinnerEl.classList.remove('hidden');
+            } else {
+                buttonTextEl.classList.remove('hidden');
+                spinnerEl.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Renders the results in the UI.
+         * @param {object} result - The parsed JSON result from the LLM.
+         */
+        function renderResults(result) {
+            matchScoreDisplay.textContent = result.matchScore + '%';
+            
+            // Change score color based on value
+            matchScoreDisplay.classList.remove('text-gray-400', 'text-red-500', 'text-yellow-600', 'text-green-600');
+            if (result.matchScore < 40) {
+                matchScoreDisplay.classList.add('text-red-500');
+            } else if (result.matchScore < 75) {
+                matchScoreDisplay.classList.add('text-yellow-600');
+            } else {
+                matchScoreDisplay.classList.add('text-green-600');
+            }
+
+            analysisDisplay.textContent = result.analysis;
+            
+            // Render keywords
+            matchedKeywordsDisplay.innerHTML = '';
+            if (result.matchedKeywords && Array.isArray(result.matchedKeywords)) {
+                result.matchedKeywords.forEach(keyword => {
+                    const span = document.createElement('span');
+                    span.className = 'bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium shadow-sm';
+                    span.textContent = keyword;
+                    matchedKeywordsDisplay.appendChild(span);
+                });
+            } else {
+                matchedKeywordsDisplay.innerHTML = '<span class="text-gray-500 italic">No specific keywords extracted.</span>';
+            }
+        }
+
+        /**
+         * Handles the main resume scoring logic.
+         */
+        async function scoreResume() {
+            clearMessage();
+            const jd = jobDescriptionEl.value.trim();
+            const resume = resumeTextEl.value.trim();
+
+            if (!jd || !resume) {
+                showMessage("Please paste both the Job Description and your Resume Text to proceed.");
+                return;
+            }
+
+            setLoading(true);
+
+            const userQuery = `Job Description:\n${jd}\n\n---\n\nResume Text:\n${resume}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema
+                }
+            };
+
+            let responseData = null;
+            let lastError = null;
+
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (!jsonText) {
+                        throw new Error("API response was missing expected content or candidates.");
+                    }
+                    
+                    responseData = JSON.parse(jsonText);
+                    break; // Success! Break the retry loop
+                } catch (error) {
+                    lastError = error;
+                    console.error(`Attempt ${i + 1} failed:`, error);
+                    if (i < MAX_RETRIES - 1) {
+                        const delay = INITIAL_BACKOFF_MS * Math.pow(2, i);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+            }
+            
+            setLoading(false);
+
+            if (responseData) {
+                try {
+                    renderResults(responseData);
+                    showMessage("Analysis complete!", 'success');
+                } catch (e) {
+                    console.error("Error rendering results:", e);
+                    showMessage("Successfully received data, but failed to parse and display results. Check console for details.");
+                }
+            } else {
+                showMessage(`Failed to get a result after ${MAX_RETRIES} attempts. Please ensure your inputs are valid and try again. Last error: ${lastError ? lastError.message : 'Unknown error'}`);
+            }
+        }
+        
+        // --- Initial Load/Setup ---
+        window.onload = function() {
+            // Optional: Populate with sample data for quick testing
+            jobDescriptionEl.value = `
+                Job Title: Senior Front-End Engineer
+                Responsibilities: Develop and maintain high-performance, responsive web applications using React and TypeScript. Implement state management with Redux or Zustand. Collaborate with UX/UI designers to translate wireframes into pixel-perfect components. Optimize application performance and ensure cross-browser compatibility. Experience with modern CSS frameworks like Tailwind CSS is highly preferred. Must have strong understanding of Git and CI/CD pipelines.
+            `;
+
+            resumeTextEl.value = `
+                EXPERIENCE
+                Front-End Developer (2020-Present)
+                - Developed and deployed high-traffic web applications using React and JavaScript.
+                - Led migration of legacy code to TypeScript, improving type safety and reducing bugs.
+                - Managed state using Redux Toolkit across several major features.
+                - Utilized CSS Modules for styling, ensuring modularity.
+                - Participated in code reviews and maintained documentation. Familiar with Git version control.
+
+                SKILLS
+                React, TypeScript, JavaScript, HTML5, CSS3, Redux, Node.js, Git, Webpack, Figma.
+            `;
+            
+            // Initial placeholder display setup
+            matchScoreDisplay.textContent = '0%';
+            analysisDisplay.textContent = 'Click "Score My Resume" to run the analysis.';
+            matchedKeywordsDisplay.innerHTML = '<span class="text-gray-500 italic">Example keywords will show here upon scoring.</span>';
+        }
+
+    </script>
+</body>
+</html>
