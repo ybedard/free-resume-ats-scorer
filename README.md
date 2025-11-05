@@ -20,7 +20,7 @@ The entire application is contained within a single index.html file, demonstrati
 
 - Frontend: HTML5 / Vanilla JavaScript
 - Styling: Tailwind CSS (CDN)
-- AI Engine: Gemini API (gemini-2.5-flash-preview-09-2025)
+- AI Engine: Gemini API (gemini-2.5-flash-lite)
 - Hosting: GitHub Pages
 
 🚀 How to Use
@@ -33,5 +33,6 @@ The entire application is contained within a single index.html file, demonstrati
 
 Since this is a single, static HTML file, deployment is trivial:
 
-1. Save the file as index.html.
-2. Upload the file to any static web host (GitHub Pages, Netlify, Vercel, etc.). The app will be live immediately.
+1. Save the file **resume-scorer.html** as **index.html**.
+2. Paste your Gemini API key at line 118 of the **index.html** file.
+3. Upload the file to any static web host (GitHub Pages, Netlify, Vercel, etc.) and the app will be live immediately.
