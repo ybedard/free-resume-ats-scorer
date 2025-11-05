@@ -2,10 +2,9 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ATS Resume Match Scorer</title>
-    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom scrollbar for textareas */
@@ -25,20 +24,17 @@
 </head>
 
 <body class="bg-gray-50 min-h-screen font-sans">
+
     <div class="container mx-auto p-4 sm:p-8 max-w-7xl">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-extrabold text-blue-800">
-                ATS Resume Match Scorer
-            </h1>
-            <p class="mt-2 text-xl text-gray-600">
-                See how well your resume matches the job description.
-            </p>
+            <h1 class="text-4xl font-extrabold text-blue-800">ATS Resume Match Scorer</h1>
+            <p class="mt-2 text-xl text-gray-600">See how well your resume matches the job description.</p>
         </header>
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Input Column -->
+
             <div class="lg:col-span-2 space-y-6">
-                <!-- Job Description Input -->
+
                 <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                     <label for="jobDescription" class="block text-lg font-semibold text-gray-700 mb-2">1. Paste Job
                         Description</label>
@@ -47,7 +43,6 @@
                         placeholder="Paste the full job description here..."></textarea>
                 </div>
 
-                <!-- Resume Text Input -->
                 <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
                     <label for="resumeText" class="block text-lg font-semibold text-gray-700 mb-2">2. Paste Your Resume
                         Text</label>
@@ -56,7 +51,6 @@
                         placeholder="Paste the plain text of your resume here..."></textarea>
                 </div>
 
-                <!-- Action Button -->
                 <button id="scoreButton" onclick="scoreResume()"
                     class="w-full py-4 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xl rounded-xl shadow-lg transition duration-150 ease-in-out transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-blue-500/50 disabled:bg-blue-400">
                     <span id="buttonText">Score My Resume</span>
@@ -64,16 +58,13 @@
                         class="hidden animate-spin h-6 w-6 border-4 border-white border-t-transparent rounded-full mx-auto">
                     </div>
                 </button>
+
             </div>
 
-            <!-- Results Column -->
             <div class="lg:col-span-1">
                 <div id="resultsCard" class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 min-h-full">
-                    <h2 class="text-2xl font-bold text-blue-800 border-b pb-3 mb-4">
-                        ATS Analysis Results
-                    </h2>
+                    <h2 class="text-2xl font-bold text-blue-800 border-b pb-3 mb-4">ATS Analysis Results</h2>
 
-                    <!-- Match Score Section -->
                     <div class="mb-6">
                         <h3 class="text-xl font-semibold text-gray-700 flex items-center mb-2">
                             <svg class="w-6 h-6 mr-2 text-green-500" fill="none" stroke="currentColor"
@@ -84,13 +75,10 @@
                             </svg>
                             Match Score
                         </h3>
-                        <p id="matchScoreDisplay" class="text-5xl font-extrabold text-gray-400">
-                            --
-                        </p>
+                        <p id="matchScoreDisplay" class="text-5xl font-extrabold text-gray-400">--</p>
                         <p class="text-sm text-gray-500 mt-1">/ 100 points</p>
                     </div>
 
-                    <!-- Matched Keywords Section -->
                     <div class="mb-6">
                         <h3 class="text-xl font-semibold text-gray-700 flex items-center mb-2">
                             <svg class="w-6 h-6 mr-2 text-yellow-500" fill="none" stroke="currentColor"
@@ -105,7 +93,6 @@
                         </div>
                     </div>
 
-                    <!-- Analysis Summary -->
                     <div>
                         <h3 class="text-xl font-semibold text-gray-700 flex items-center mb-2">
                             <svg class="w-6 h-6 mr-2 text-indigo-500" fill="none" stroke="currentColor"
@@ -115,94 +102,223 @@
                             </svg>
                             Summary Analysis
                         </h3>
-                        <p id="analysisDisplay" class="text-gray-600 leading-relaxed text-base italic">
-                            The analysis will appear here. It will suggest areas for
-                            improvement.
-                        </p>
+                        <p id="analysisDisplay" class="text-gray-600 leading-relaxed text-base italic">The analysis will
+                            appear here. It will suggest areas for improvement.</p>
                     </div>
 
-                    <!-- Error/Message Box -->
                     <div id="messageBox"
                         class="mt-6 hidden p-4 text-sm rounded-lg bg-red-100 text-red-700 border border-red-300"></div>
+
                 </div>
             </div>
+
         </main>
     </div>
 
     <script>
-        const proxyUrl = "https://gemini-ats-proxy.yannick-bedard.workers.dev"; // Replace with your proxy URL
-        const form = document.getElementById("atsForm");
-        const resultsCard = document.getElementById("resultsCard");
-        const loadingSpinner = document.getElementById("loadingSpinner");
-        const errorCard = document.getElementById("errorCard");
-        const errorText = document.getElementById("errorText");
+        const MAX_RETRIES = 3;
+        const INITIAL_BACKOFF_MS = 1000;
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
+        // --- UI Element References ---
+        const jobDescriptionEl = document.getElementById('jobDescription');
+        const resumeTextEl = document.getElementById('resumeText');
+        const scoreButton = document.getElementById('scoreButton');
+        const buttonTextEl = document.getElementById('buttonText');
+        const spinnerEl = document.getElementById('spinner');
+        const matchScoreDisplay = document.getElementById('matchScoreDisplay');
+        const matchedKeywordsDisplay = document.getElementById('matchedKeywordsDisplay');
+        const analysisDisplay = document.getElementById('analysisDisplay');
+        const messageBox = document.getElementById('messageBox');
 
-            const jd = document.getElementById("jobDescription").value;
-            const resume = document.getElementById("resume").value;
+        // --- API Configuration ---
+        const apiUrl = "https://gemini-ats-proxy.yannick-bedard.workers.dev";
+
+        // --- Utility Functions ---
+
+        /**
+         * Shows a message in the designated box.
+         * @param {string} message The message to display.
+         * @param {string} type 'error' (red) or 'success' (green)
+         */
+        function showMessage(message, type = 'error') {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'border-red-300', 'bg-green-100', 'text-green-700', 'border-green-300');
+            messageBox.classList.add(
+                type === 'error' ? 'bg-red-100' : 'bg-red-100', // Kept red for errors
+                type === 'error' ? 'text-red-700' : 'text-red-700', // Kept red for errors
+                type === 'error' ? 'border-red-300' : 'border-red-300' // Kept red for errors
+            );
+            // Re-adding the success colors for better feedback:
+            if (type === 'success') {
+                messageBox.classList.remove('bg-red-100', 'text-red-700', 'border-red-300');
+                messageBox.classList.add('bg-green-100', 'text-green-700', 'border-green-300');
+            }
+            messageBox.classList.remove('hidden');
+        }
+
+
+        /**
+         * Clears the message box.
+         */
+        function clearMessage() {
+            messageBox.classList.add('hidden');
+            messageBox.textContent = '';
+        }
+
+        /**
+         * Sets the loading state of the UI.
+         * @param {boolean} isLoading 
+         */
+        function setLoading(isLoading) {
+            scoreButton.disabled = isLoading;
+            if (isLoading) {
+                buttonTextEl.classList.add('hidden');
+                spinnerEl.classList.remove('hidden');
+            } else {
+                buttonTextEl.classList.remove('hidden');
+                spinnerEl.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Renders the results in the UI.
+         * @param {object} result - The parsed JSON result from the LLM.
+         */
+        function renderResults(result) {
+            matchScoreDisplay.textContent = result.matchScore + '%';
+
+            // Change score color based on value
+            matchScoreDisplay.classList.remove('text-gray-400', 'text-red-500', 'text-yellow-600', 'text-green-600');
+            if (result.matchScore < 40) {
+                matchScoreDisplay.classList.add('text-red-500');
+            } else if (result.matchScore < 75) {
+                matchScoreDisplay.classList.add('text-yellow-600');
+            } else {
+                matchScoreDisplay.classList.add('text-green-600');
+            }
+
+            analysisDisplay.textContent = result.analysis;
+
+            // Render keywords
+            matchedKeywordsDisplay.innerHTML = '';
+            if (result.matchedKeywords && Array.isArray(result.matchedKeywords)) {
+                result.matchedKeywords.forEach(keyword => {
+                    const span = document.createElement('span');
+                    span.className = 'bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium shadow-sm';
+                    span.textContent = keyword;
+                    matchedKeywordsDisplay.appendChild(span);
+                });
+            } else {
+                matchedKeywordsDisplay.innerHTML = '<span class="text-gray-500 italic">No specific keywords extracted.</span>';
+            }
+        }
+
+        /**
+         * Handles the main resume scoring logic.
+         */
+        async function scoreResume() {
+            clearMessage();
+            const jd = jobDescriptionEl.value.trim();
+            const resume = resumeTextEl.value.trim();
 
             if (!jd || !resume) {
-                errorText.textContent = "Please fill out both the job description and resume fields.";
-                errorCard.classList.remove("hidden");
+                showMessage("Please paste both the Job Description and your Resume Text to proceed.");
                 return;
             }
 
-            // Show loading, hide old results
-            loadingSpinner.classList.remove("hidden");
-            resultsCard.classList.add("hidden");
-            errorCard.classList.add("hidden");
+            setLoading(true);
 
-            try {
-                // 1. CALL CLOUDFLARE PROXY, NOT GOOGLE
-                const response = await fetch(proxyUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        jd: jd,
-                        resume: resume,
-                    }),
-                });
+            // NEW: The payload now only sends the user's inputs to the Worker
+            const payload = {
+                jobDescription: jd,
+                resumeText: resume
+            };
 
-                if (!response.ok) {
-                    const errorData = await response.json();
+            let responseData = null;
+            let lastError = null;
 
-                    throw new Error(
-                        errorData.details ||
-                        errorData.error ||
-                        "HTTP error! status: " + response.status
-                    );
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    // Call the Cloudflare Worker URL
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Worker/Proxy error! status: ${response.status}. Message: ${errorText}`);
+                    }
+
+                    // Worker should return the final, parsed JSON output from Gemini directly
+                    const result = await response.json();
+
+                    // The Worker is now expected to return the final JSON structure directly,
+                    // without the extra Gemini API boilerplate (like candidates[0].content.parts[0].text).
+                    // We assume the Worker handles parsing and error checking on its end.
+                    if (result && result.matchScore !== undefined) {
+                        responseData = result;
+                        break; // Success! Break the retry loop
+                    } else {
+                        throw new Error("Proxy returned unexpected or incomplete JSON structure.");
+                    }
+
+                } 
+                catch (error) {
+                    lastError = error;
+                    console.error(`Attempt ${i + 1} failed:`, error);
+                    if (i < MAX_RETRIES - 1) {
+                        const delay = INITIAL_BACKOFF_MS * Math.pow(2, i);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
                 }
-
-                const result = await response.json();
-
-                // 2. POPULATE THE RESULTS
-                document.getElementById("score").textContent = `${result.matchScore}%`;
-                document.getElementById("analysis").textContent = result.analysis;
-
-                const keywordsList = document.getElementById("keywords");
-                keywordsList.innerHTML = ""; // Clear old keywords
-
-                result.matchedKeywords.forEach((keyword) => {
-                    const li = document.createElement("li");
-
-                    li.className = "bg-gray-200 text-gray-800 text-sm font-medium mr-2 mb-2 px-2.5 py-0.5 rounded";
-                    li.textContent = keyword;
-                    keywordsList.appendChild(li);
-                });
-
-                resultsCard.classList.remove("hidden");
             }
-            catch (error) {
-                console.error("Fetch error:", error);
-                errorText.textContent = `Error: ${error.message}. Please check the proxy URL or worker logs.`;
-                errorCard.classList.remove("hidden");
+
+            setLoading(false);
+
+            if (responseData) {
+                try {
+                    renderResults(responseData);
+                    showMessage("Analysis complete!", 'success');
+                } 
+                catch (e) {
+                    console.error("Error rendering results:", e);
+                    showMessage("Successfully received data, but failed to parse and display results. Check console for details.");
+                }
+            } 
+            else {
+                showMessage(`Failed to get a result after ${MAX_RETRIES} attempts. Please ensure your inputs are valid and the Cloudflare Worker is active. Last error: ${lastError ? lastError.message : 'Unknown error'}`);
             }
-            finally {
-                loadingSpinner.classList.add("hidden");
-            }
-        });
+        }
+
+        // --- Initial Load/Setup ---
+        window.onload = function () {
+            // Optional: Populate with sample data for quick testing
+            jobDescriptionEl.value = `
+                Job Title: Senior Front-End Engineer
+                Responsibilities: Develop and maintain high-performance, responsive web applications using React and TypeScript. Implement state management with Redux or Zustand. Collaborate with UX/UI designers to translate wireframes into pixel-perfect components. Optimize application performance and ensure cross-browser compatibility. Experience with modern CSS frameworks like Tailwind CSS is highly preferred. Must have strong understanding of Git and CI/CD pipelines.
+            `;
+
+            resumeTextEl.value = `
+                EXPERIENCE
+                Front-End Developer (2020-Present)
+                - Developed and deployed high-traffic web applications using React and JavaScript.
+                - Led migration of legacy code to TypeScript, improving type safety and reducing bugs.
+                - Managed state using Redux Toolkit across several major features.
+                - Utilized CSS Modules for styling, ensuring modularity.
+                - Participated in code reviews and maintained documentation. Familiar with Git version control.
+
+                SKILLS
+                React, TypeScript, JavaScript, HTML5, CSS3, Redux, Node.js, Git, Webpack, Figma.
+            `;
+
+            // Initial placeholder display setup
+            matchScoreDisplay.textContent = '0%';
+            analysisDisplay.textContent = 'Click "Score My Resume" to run the analysis.';
+            matchedKeywordsDisplay.innerHTML = '<span class="text-gray-500 italic">Example keywords will show here upon scoring.</span>';
+        }
+
     </script>
 </body>
 
